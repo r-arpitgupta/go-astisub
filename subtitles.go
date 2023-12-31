@@ -495,6 +495,9 @@ func (s *Subtitles) Segment(segmentationType string, segmentDuration float64, se
 	var noOfSegs int
 	if segmentationType == "SPECIFIED" {
 		noOfSegs = len(segmentDurations)
+		sort.Slice(segmentDurations, func(i, j int) bool {
+			return segmentDurations[i] < segmentDurations[j]
+		})
 	} else {
 		totalDurationSecs := s.Items[len(s.Items)-1].EndAt.Seconds()
 		noOfSegs = int(math.Ceil(totalDurationSecs / segmentDuration))
@@ -515,69 +518,6 @@ func (s *Subtitles) Segment(segmentationType string, segmentDuration float64, se
 		} else {
 			end = time.Duration(float64(i+1) * segmentDuration * float64(time.Second))
 		}
-		if end <= s.Items[itemIdx].StartAt {
-		} else {
-			for itemIdx < len(s.Items) && end > s.Items[itemIdx].StartAt {
-				sub.Items = append(sub.Items, s.Items[itemIdx])
-				if s.Items[itemIdx].EndAt <= end {
-					itemIdx++
-				} else {
-					break
-				}
-			}
-		}
-		subs = append(subs, sub)
-	}
-	return subs
-}
-
-func (s *Subtitles) SpecifiedSegment(segmentDurations []float64) []*Subtitles {
-	if len(s.Items) == 0 {
-		return nil
-	}
-	s.Order()
-	// totalDurationSecs := s.Items[len(s.Items)-1].EndAt.Seconds()
-	// noOfSegs := int(math.Ceil(totalDurationSecs / segmentDuration))
-	var subs []*Subtitles
-	itemIdx := 0
-	end := time.Duration(0)
-	for i := 0; i < len(segmentDurations); i++ {
-		sub := NewSubtitles()
-		sub.Regions = s.Regions
-		sub.Styles = s.Styles
-		sub.Metadata = s.Metadata
-		end = end + time.Duration(segmentDurations[i]*float64(time.Second))
-		if end <= s.Items[itemIdx].StartAt {
-		} else {
-			for itemIdx < len(s.Items) && end > s.Items[itemIdx].StartAt {
-				sub.Items = append(sub.Items, s.Items[itemIdx])
-				if s.Items[itemIdx].EndAt <= end {
-					itemIdx++
-				} else {
-					break
-				}
-			}
-		}
-		subs = append(subs, sub)
-	}
-	return subs
-}
-
-func (s *Subtitles) UnifiedSegment(segmentDuration float64) []*Subtitles {
-	if len(s.Items) == 0 {
-		return nil
-	}
-	s.Order()
-	totalDurationSecs := s.Items[len(s.Items)-1].EndAt.Seconds()
-	noOfSegs := int(math.Ceil(totalDurationSecs / segmentDuration))
-	var subs []*Subtitles
-	itemIdx := 0
-	for i := 0; i < noOfSegs; i++ {
-		sub := NewSubtitles()
-		sub.Regions = s.Regions
-		sub.Styles = s.Styles
-		sub.Metadata = s.Metadata
-		end := time.Duration(float64(i+1) * segmentDuration * float64(time.Second))
 		if end <= s.Items[itemIdx].StartAt {
 		} else {
 			for itemIdx < len(s.Items) && end > s.Items[itemIdx].StartAt {

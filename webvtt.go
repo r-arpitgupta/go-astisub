@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -385,17 +386,31 @@ func formatDurationWebVTT(i time.Duration) string {
 	return formatDuration(i, ".", 3)
 }
 
+// WriteToWebVTTFile writes subtitles in .vtt format
+func (s Subtitles) WriteToWebVTTFile(dst string, offset float64) error {
+	// Do not write anything if no subtitles
+	f, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	return s.WriteToWebVTTWithSync(f, offset)
+}
+
 // WriteToWebVTT writes subtitles in .vtt format
 func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	// Do not write anything if no subtitles
-	// if len(s.Items) == 0 {
-	// 	err = ErrNoSubtitlesToWrite
-	// 	return
-	// }
+	if len(s.Items) == 0 {
+		err = ErrNoSubtitlesToWrite
+		return
+	}
+	return s.WriteToWebVTTWithSync(o, 0)
+}
 
+// WriteToWebVTTWithSync writes subtitles in .vtt format
+func (s Subtitles) WriteToWebVTTWithSync(o io.Writer, offset float64) (err error) {
 	// Add header
 	var c []byte
-	c = append(c, []byte("WEBVTT\n\n")...)
+	c = append(c, []byte(fmt.Sprintf("WEBVTT\n%s=MPEGTS:%d,LOCAL:00:00:00.000\n\n", webvttTimestampMap, int(offset*90000)))...)
 
 	var style []string
 	for _, s := range s.Styles {
