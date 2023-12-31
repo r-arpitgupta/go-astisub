@@ -410,8 +410,11 @@ func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 func (s Subtitles) WriteToWebVTTWithSync(o io.Writer, offset float64) (err error) {
 	// Add header
 	var c []byte
-	c = append(c, []byte(fmt.Sprintf("WEBVTT\n%s=MPEGTS:%d,LOCAL:00:00:00.000\n\n", webvttTimestampMap, int(offset*90000)))...)
-
+	if offset == 0 {
+		c = append(c, []byte("WEBVTT\n\n")...)
+	} else {
+		c = append(c, []byte(fmt.Sprintf("WEBVTT\n%s=MPEGTS:%d,LOCAL:00:00:00.000\n\n", webvttTimestampMap, int(offset*90000)))...)
+	}
 	var style []string
 	for _, s := range s.Styles {
 		if s.InlineStyle != nil {

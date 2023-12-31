@@ -22,11 +22,11 @@ var (
 	teletextPage     = flag.Int("p", 0, "the teletext page")
 	outputPath       = flag.String("o", "", "the output path")
 	syncDuration     = flag.Duration("s", 0, "the sync duration")
-	segmentationType = flag.String("st", "UNIFIED", "the segmentation type with unified duration specified duration")
+	segmentationType = flag.String("st", "UNIFIED", "the segmentation type UNIFIED/SPECIFIED. In unified"+
+		" segmentation all segment have same duration whereas specified have user given duration for each segment.")
 	segmentDuration  = flag.Float64("sd", 5, "segmentation duration for unified segmentation type")
-	segmentDurations = flag.String("sds", "0", "segment durations for all segments seperated by comma")
-	webvttOffset     = flag.Float64("wo", 0, "webvtt offset for synchronization for segmentation")
-	// segmentationOutputTemplate = flag.String("sot", "seg-%03d.vtt", "segmentation output file name template")
+	segmentDurations = flag.String("sds", "", "segment durations for all segments seperated by comma")
+	webvttOffset     = flag.Float64("wo", 0, "webvtt offset for synchronization of segment in hls")
 )
 
 func main() {
@@ -143,16 +143,19 @@ func main() {
 			log.Fatalf("%s while writing to %s", err, *outputPath)
 		}
 	case "vtt-segment":
+		// go run main.go vtt-segment -i <input_path>  -st SPECIFIED -sds "2,4,10,12,13" -o "seg-%03d.vtt" -wo 10
 		if *segmentationType == "SPECIFIED" && segmentDurations == nil {
 			log.Fatalf("segment duration must be present for specified segmentation type")
 		}
 		var sds []float64
-		for _, segDuration := range strings.Split(*segmentDurations, ",") {
-			segDur, err := strconv.ParseFloat(segDuration, 64)
-			if err != nil {
-				log.Fatalf("%s unable to parse seg duration %s", err, segDuration)
+		if *segmentDurations != "" {
+			for _, segDuration := range strings.Split(*segmentDurations, ",") {
+				segDur, err := strconv.ParseFloat(segDuration, 64)
+				if err != nil {
+					log.Fatalf("%s unable to parse seg duration %s", err, segDuration)
+				}
+				sds = append(sds, segDur)
 			}
-			sds = append(sds, segDur)
 		}
 		segmentedSubs := sub.Segment(*segmentationType, *segmentDuration, sds)
 		for idx, segmentedSub := range segmentedSubs {

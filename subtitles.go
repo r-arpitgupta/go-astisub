@@ -495,9 +495,6 @@ func (s *Subtitles) Segment(segmentationType string, segmentDuration float64, se
 	var noOfSegs int
 	if segmentationType == "SPECIFIED" {
 		noOfSegs = len(segmentDurations)
-		sort.Slice(segmentDurations, func(i, j int) bool {
-			return segmentDurations[i] < segmentDurations[j]
-		})
 	} else {
 		totalDurationSecs := s.Items[len(s.Items)-1].EndAt.Seconds()
 		noOfSegs = int(math.Ceil(totalDurationSecs / segmentDuration))
@@ -525,6 +522,7 @@ func (s *Subtitles) Segment(segmentationType string, segmentDuration float64, se
 				if s.Items[itemIdx].EndAt <= end {
 					itemIdx++
 				} else {
+					// handle same cue in multiple segment
 					break
 				}
 			}
@@ -532,10 +530,6 @@ func (s *Subtitles) Segment(segmentationType string, segmentDuration float64, se
 		subs = append(subs, sub)
 	}
 	return subs
-}
-
-func at64(second time.Duration) {
-
 }
 
 // Fragment fragments subtitles with a specific fragment duration
