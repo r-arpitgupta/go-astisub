@@ -318,16 +318,16 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 		sa.WebVTTAlign = *sa.TTMLTextAlign
 	}
 	if sa.TTMLExtent != nil {
-		//region settings
-		lineHeight := 5 //assuming height of line as 5.33vh
+		// region settings
+		lineHeight := 5 // assuming height of line as 5.33vh
 		dimensions := strings.Split(*sa.TTMLExtent, " ")
 		if len(dimensions) > 1 {
 			sa.WebVTTWidth = dimensions[0]
 			if height, err := strconv.Atoi(strings.ReplaceAll(dimensions[1], "%", "")); err == nil {
 				sa.WebVTTLines = height / lineHeight
 			}
-			//cue settings
-			//default TTML WritingMode is lrtb i.e. left to right, top to bottom
+			// cue settings
+			// default TTML WritingMode is lrtb i.e. left to right, top to bottom
 			sa.WebVTTSize = dimensions[1]
 			if sa.TTMLWritingMode != nil && strings.HasPrefix(*sa.TTMLWritingMode, "tb") {
 				sa.WebVTTSize = dimensions[0]
@@ -335,11 +335,11 @@ func (sa *StyleAttributes) propagateTTMLAttributes() {
 		}
 	}
 	if sa.TTMLOrigin != nil {
-		//region settings
+		// region settings
 		sa.WebVTTRegionAnchor = "0%,0%"
 		sa.WebVTTViewportAnchor = strings.ReplaceAll(strings.TrimSpace(*sa.TTMLOrigin), " ", ",")
 		sa.WebVTTScroll = "up"
-		//cue settings
+		// cue settings
 		coordinates := strings.Split(*sa.TTMLOrigin, " ")
 		if len(coordinates) > 1 {
 			sa.WebVTTLine = coordinates[0]
@@ -485,6 +485,117 @@ func (s *Subtitles) ForceDuration(d time.Duration, addDummyItem bool) {
 	if addDummyItem && s.Duration() < d {
 		s.Items = append(s.Items, &Item{EndAt: d, Lines: []Line{{Items: []LineItem{{Text: "..."}}}}, StartAt: d - time.Millisecond})
 	}
+}
+
+func (s *Subtitles) Segment(segmentationType string, segmentDuration float64, segmentDurations []float64) []*Subtitles {
+	if len(s.Items) == 0 {
+		return nil
+	}
+	s.Order()
+	var noOfSegs int
+	if segmentationType == "SPECIFIED" {
+		noOfSegs = len(segmentDurations)
+	} else {
+		totalDurationSecs := s.Items[len(s.Items)-1].EndAt.Seconds()
+		noOfSegs = int(math.Ceil(totalDurationSecs / segmentDuration))
+	}
+	if noOfSegs == 0 {
+		return nil
+	}
+	var subs []*Subtitles
+	itemIdx := 0
+	end := time.Duration(0)
+	for i := 0; i < noOfSegs; i++ {
+		sub := NewSubtitles()
+		sub.Regions = s.Regions
+		sub.Styles = s.Styles
+		sub.Metadata = s.Metadata
+		if segmentationType == "SPECIFIED" {
+			end = end + time.Duration(segmentDurations[i]*float64(time.Second))
+		} else {
+			end = time.Duration(float64(i+1) * segmentDuration * float64(time.Second))
+		}
+		if end <= s.Items[itemIdx].StartAt {
+		} else {
+			for itemIdx < len(s.Items) && end > s.Items[itemIdx].StartAt {
+				sub.Items = append(sub.Items, s.Items[itemIdx])
+				if s.Items[itemIdx].EndAt <= end {
+					itemIdx++
+				} else {
+					break
+				}
+			}
+		}
+		subs = append(subs, sub)
+	}
+	return subs
+}
+
+func (s *Subtitles) SpecifiedSegment(segmentDurations []float64) []*Subtitles {
+	if len(s.Items) == 0 {
+		return nil
+	}
+	s.Order()
+	// totalDurationSecs := s.Items[len(s.Items)-1].EndAt.Seconds()
+	// noOfSegs := int(math.Ceil(totalDurationSecs / segmentDuration))
+	var subs []*Subtitles
+	itemIdx := 0
+	end := time.Duration(0)
+	for i := 0; i < len(segmentDurations); i++ {
+		sub := NewSubtitles()
+		sub.Regions = s.Regions
+		sub.Styles = s.Styles
+		sub.Metadata = s.Metadata
+		end = end + time.Duration(segmentDurations[i]*float64(time.Second))
+		if end <= s.Items[itemIdx].StartAt {
+		} else {
+			for itemIdx < len(s.Items) && end > s.Items[itemIdx].StartAt {
+				sub.Items = append(sub.Items, s.Items[itemIdx])
+				if s.Items[itemIdx].EndAt <= end {
+					itemIdx++
+				} else {
+					break
+				}
+			}
+		}
+		subs = append(subs, sub)
+	}
+	return subs
+}
+
+func (s *Subtitles) UnifiedSegment(segmentDuration float64) []*Subtitles {
+	if len(s.Items) == 0 {
+		return nil
+	}
+	s.Order()
+	totalDurationSecs := s.Items[len(s.Items)-1].EndAt.Seconds()
+	noOfSegs := int(math.Ceil(totalDurationSecs / segmentDuration))
+	var subs []*Subtitles
+	itemIdx := 0
+	for i := 0; i < noOfSegs; i++ {
+		sub := NewSubtitles()
+		sub.Regions = s.Regions
+		sub.Styles = s.Styles
+		sub.Metadata = s.Metadata
+		end := time.Duration(float64(i+1) * segmentDuration * float64(time.Second))
+		if end <= s.Items[itemIdx].StartAt {
+		} else {
+			for itemIdx < len(s.Items) && end > s.Items[itemIdx].StartAt {
+				sub.Items = append(sub.Items, s.Items[itemIdx])
+				if s.Items[itemIdx].EndAt <= end {
+					itemIdx++
+				} else {
+					break
+				}
+			}
+		}
+		subs = append(subs, sub)
+	}
+	return subs
+}
+
+func at64(second time.Duration) {
+
 }
 
 // Fragment fragments subtitles with a specific fragment duration

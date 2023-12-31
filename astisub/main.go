@@ -2,7 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/asticode/go-astikit"
 	"github.com/asticode/go-astisub"
@@ -10,15 +13,20 @@ import (
 
 // Flags
 var (
-	actual1          = flag.Duration("a1", 0, "the first actual duration")
-	actual2          = flag.Duration("a2", 0, "the second actual duration")
-	desired1         = flag.Duration("d1", 0, "the first desired duration")
-	desired2         = flag.Duration("d2", 0, "the second desired duration")
-	fragmentDuration = flag.Duration("f", 0, "the fragment duration")
-	inputPath        = astikit.NewFlagStrings()
-	teletextPage     = flag.Int("p", 0, "the teletext page")
-	outputPath       = flag.String("o", "", "the output path")
-	syncDuration     = flag.Duration("s", 0, "the sync duration")
+	actual1                    = flag.Duration("a1", 0, "the first actual duration")
+	actual2                    = flag.Duration("a2", 0, "the second actual duration")
+	desired1                   = flag.Duration("d1", 0, "the first desired duration")
+	desired2                   = flag.Duration("d2", 0, "the second desired duration")
+	fragmentDuration           = flag.Duration("f", 0, "the fragment duration")
+	inputPath                  = astikit.NewFlagStrings()
+	teletextPage               = flag.Int("p", 0, "the teletext page")
+	outputPath                 = flag.String("o", "", "the output path")
+	syncDuration               = flag.Duration("s", 0, "the sync duration")
+	segmentationType           = flag.String("st", "UNIFIED", "the segmentation type with unified duration specified duration")
+	segmentationDuration       = flag.Float64("sd", 5, "segmentation duration for unified segmentation type")
+	segmentDurations           = flag.String("sds", "", "segment durations for all segments seperated by comma")
+	webvttOffset               = flag.Float64("wo", 0, "webvtt offset for synchronization for segmentation")
+	segmentationOutputTemplate = flag.String("sot", "seg-%03d.vtt", "segmentation output file name template")
 )
 
 func main() {
@@ -33,9 +41,9 @@ func main() {
 	}
 
 	// Validate output path
-	if len(*outputPath) <= 0 {
-		log.Fatal("Use -o to provide an output path")
-	}
+	// if len(*outputPath) <= 0 {
+	// 	log.Fatal("Use -o to provide an output path")
+	// }
 
 	// Open first input path
 	var sub *astisub.Subtitles
@@ -133,6 +141,24 @@ func main() {
 		// Write
 		if err = sub.Write(*outputPath); err != nil {
 			log.Fatalf("%s while writing to %s", err, *outputPath)
+		}
+	case "segment":
+		if *segmentationType == "SPECIFIED" && segmentDurations == nil {
+			log.Fatalf("segment duration must be present for specified segmentation type")
+		}
+		var sds []float64
+		for _, segmentDuration := range strings.Split(*segmentDurations, ",") {
+			segDur, err := strconv.ParseFloat(segmentDuration, 64)
+			if err != nil {
+				log.Fatalf("%s unable to parse seg duration %s", err, segmentDuration)
+			}
+			sds = append(sds, segDur)
+		}
+		segmentedSubs := sub.Segment(*segmentationType, *segmentationDuration, sds)
+		for idx, segmentedSub := range segmentedSubs {
+			if err = segmentedSub.Write(fmt.Sprintf(*segmentationOutputTemplate, idx)); err != nil {
+				log.Fatalf("%s while writing to %s", err, *outputPath)
+			}
 		}
 	default:
 		log.Fatalf("Invalid subcommand %s", cmd)
