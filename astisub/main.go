@@ -2,7 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/asticode/go-astikit"
 	"github.com/asticode/go-astisub"
@@ -19,6 +22,11 @@ var (
 	teletextPage     = flag.Int("p", 0, "the teletext page")
 	outputPath       = flag.String("o", "", "the output path")
 	syncDuration     = flag.Duration("s", 0, "the sync duration")
+	segmentationType = flag.String("st", "UNIFIED", "the segmentation type UNIFIED/SPECIFIED. In unified"+
+		" segmentation all segment have same duration whereas specified have user given duration for each segment.")
+	segmentDuration  = flag.Float64("sd", 5, "segmentation duration for unified segmentation type")
+	segmentDurations = flag.String("sds", "", "segment durations for all segments seperated by comma")
+	webvttOffset     = flag.Float64("wo", 0, "webvtt offset for synchronization of segment in hls")
 )
 
 func main() {
@@ -133,6 +141,27 @@ func main() {
 		// Write
 		if err = sub.Write(*outputPath); err != nil {
 			log.Fatalf("%s while writing to %s", err, *outputPath)
+		}
+	case "vtt-segment":
+		// go run main.go vtt-segment -i <input_path>  -st SPECIFIED -sds "2,4,10,12,13" -o "seg-%03d.vtt" -wo 10
+		if *segmentationType == "SPECIFIED" && segmentDurations == nil {
+			log.Fatalf("segment duration must be present for specified segmentation type")
+		}
+		var sds []float64
+		if *segmentDurations != "" {
+			for _, segDuration := range strings.Split(*segmentDurations, ",") {
+				segDur, err := strconv.ParseFloat(segDuration, 64)
+				if err != nil {
+					log.Fatalf("%s unable to parse seg duration %s", err, segDuration)
+				}
+				sds = append(sds, segDur)
+			}
+		}
+		segmentedSubs := sub.Segment(*segmentationType, *segmentDuration, sds)
+		for idx, segmentedSub := range segmentedSubs {
+			if err = segmentedSub.WriteToWebVTTFile(fmt.Sprintf(*outputPath, idx), *webvttOffset); err != nil {
+				log.Fatalf("%s while writing to %s", err, *outputPath)
+			}
 		}
 	default:
 		log.Fatalf("Invalid subcommand %s", cmd)
