@@ -27,6 +27,7 @@ var (
 	segmentDuration  = flag.Float64("sd", 5, "segmentation duration for unified segmentation type")
 	segmentDurations = flag.String("sds", "", "segment durations for all segments seperated by comma")
 	webvttOffset     = flag.Float64("wo", 0, "webvtt offset for synchronization of segment in hls")
+	timecodeOffset   = flag.Float64("to", 0, "timecode offset to modify start timecode")
 )
 
 func main() {
@@ -162,6 +163,11 @@ func main() {
 			if err = segmentedSub.WriteToWebVTTFile(fmt.Sprintf(*outputPath, idx), *webvttOffset); err != nil {
 				log.Fatalf("%s while writing to %s", err, *outputPath)
 			}
+		}
+	case "modify-start-timecode":
+		sub.ModifyStartTimeCode(*timecodeOffset)
+		if err = sub.Write(*outputPath); err != nil {
+			log.Fatalf("%s while writing to %s", err, *outputPath)
 		}
 	default:
 		log.Fatalf("Invalid subcommand %s", cmd)
