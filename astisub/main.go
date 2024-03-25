@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/r-arpitgupta/go-astisub"
+	"github.com/asticode/go-astisub"
 	"log"
 	"strconv"
 	"strings"
