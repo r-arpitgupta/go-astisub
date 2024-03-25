@@ -533,6 +533,22 @@ func (s *Subtitles) Segment(segmentationType string, segmentDuration float64, se
 	return subs
 }
 
+func (s *Subtitles) ModifyStartTimeCode(offset float64) error {
+	for itemIdx, item := range s.Items {
+		if offset < 0 {
+			s.Items[itemIdx].StartAt = item.StartAt + time.Duration(math.Abs(offset)*float64(time.Second))
+			s.Items[itemIdx].EndAt = item.EndAt + time.Duration(math.Abs(offset)*float64(time.Second))
+		} else {
+			if item.StartAt.Seconds()-offset < 0 {
+				return errors.New("subtitle start is less than offset")
+			}
+			s.Items[itemIdx].StartAt = item.StartAt - time.Duration(offset*float64(time.Second))
+			s.Items[itemIdx].EndAt = item.EndAt - time.Duration(offset*float64(time.Second))
+		}
+	}
+	return nil
+}
+
 // Fragment fragments subtitles with a specific fragment duration
 func (s *Subtitles) Fragment(f time.Duration) {
 	// Nothing to fragment

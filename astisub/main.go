@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/asticode/go-astisub"
 	"log"
 	"strconv"
 	"strings"
 
 	"github.com/asticode/go-astikit"
-	"github.com/asticode/go-astisub"
 )
 
 // Flags
@@ -27,6 +27,7 @@ var (
 	segmentDuration  = flag.Float64("sd", 5, "segmentation duration for unified segmentation type")
 	segmentDurations = flag.String("sds", "", "segment durations for all segments seperated by comma")
 	webvttOffset     = flag.Float64("wo", 0, "webvtt offset for synchronization of segment in hls")
+	timecodeOffset   = flag.Float64("to", 0, "timecode offset to modify start timecode")
 )
 
 func main() {
@@ -162,6 +163,13 @@ func main() {
 			if err = segmentedSub.WriteToWebVTTFile(fmt.Sprintf(*outputPath, idx), *webvttOffset); err != nil {
 				log.Fatalf("%s while writing to %s", err, *outputPath)
 			}
+		}
+	case "modify-start-timecode":
+		if err = sub.ModifyStartTimeCode(*timecodeOffset); err != nil {
+			log.Fatalf("%s while modify start time code to %s", err, *outputPath)
+		}
+		if err = sub.Write(*outputPath); err != nil {
+			log.Fatalf("%s while writing to %s", err, *outputPath)
 		}
 	default:
 		log.Fatalf("Invalid subcommand %s", cmd)
