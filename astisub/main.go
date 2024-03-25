@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/r-arpitgupta/go-astisub"
 	"log"
 	"strconv"
 	"strings"
 
 	"github.com/asticode/go-astikit"
-	"github.com/asticode/go-astisub"
 )
 
 // Flags
@@ -165,7 +165,9 @@ func main() {
 			}
 		}
 	case "modify-start-timecode":
-		sub.ModifyStartTimeCode(*timecodeOffset)
+		if err = sub.ModifyStartTimeCode(*timecodeOffset); err != nil {
+			log.Fatalf("%s while modify start time code to %s", err, *outputPath)
+		}
 		if err = sub.Write(*outputPath); err != nil {
 			log.Fatalf("%s while writing to %s", err, *outputPath)
 		}
