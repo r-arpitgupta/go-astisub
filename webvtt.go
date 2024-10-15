@@ -36,8 +36,8 @@ var (
 	bytesWebVTTTimeBoundariesSeparator = []byte(webvttTimeBoundariesSeparator)
 	webVTTRegexpInlineTimestamp        = regexp.MustCompile(`<((?:\d{2,}:)?\d{2}:\d{2}\.\d{3})>`)
 	webVTTRegexpTag                    = regexp.MustCompile(`(</*\s*([^\.\s]+)(\.[^\s/]*)*\s*([^/]*)\s*/*>)`)
-	webVTTEscaper                      = strings.NewReplacer("&", "&amp;", "<", "&lt;")
-	webVTTUnescaper                    = strings.NewReplacer("&amp;", "&", "&lt;", "<")
+	webVTTEscaper                      = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "\xa0", "&nbsp")
+	webVTTUnescaper                    = strings.NewReplacer("&amp;", "&", "&lt;", "<", "&gt;", ">", "&nbsp", "\xa0")
 )
 
 // parseDurationWebVTT parses a .vtt duration
