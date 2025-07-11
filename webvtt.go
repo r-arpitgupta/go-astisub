@@ -444,10 +444,10 @@ func (s Subtitles) WriteToWebVTTFile(dst string, offset float64) error {
 // WriteToWebVTT writes subtitles in .vtt format
 func (s Subtitles) WriteToWebVTT(o io.Writer) (err error) {
 	// Do not write anything if no subtitles
-	if len(s.Items) == 0 {
-		err = ErrNoSubtitlesToWrite
-		return
-	}
+	// if len(s.Items) == 0 {
+	// 	err = ErrNoSubtitlesToWrite
+	// 	return
+	// }
 	return s.WriteToWebVTTWithSync(o, 0)
 }
 
